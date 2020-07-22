@@ -1,0 +1,26 @@
+#    image: cbck/couchmart:python2
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couchmart
+spec:
+  selector:
+    matchLabels:
+      app: couchmart
+  template:
+    metadata:
+      labels:
+        app: couchmart
+    spec:
+      containers:
+      - name: couchmart
+        image: cbck/couchmart:python2
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /var/run/secrets/couchbase.com/couchbase-operator-admission
+          name: couchbase-operator-admission
+          readOnly: true
+      volumes:
+      - name: couchbase-operator-admission
+        secret:
+          secretName: couchbase-operator-admission

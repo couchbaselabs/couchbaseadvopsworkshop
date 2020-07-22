@@ -1,0 +1,134 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  creationTimestamp: null
+  name: couchbase-operator-admission-###NAMESPACE###
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: couchbase-operator-admission-###NAMESPACE###
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: couchbase-operator-admission
+subjects:
+- kind: ServiceAccount
+  name: couchbase-operator-admission-###NAMESPACE###
+  namespace: ###NAMESPACE###
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  name: couchbase-operator-admission-###NAMESPACE###
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: couchbase-operator-admission-###NAMESPACE###
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: couchbase-operator-admission-###NAMESPACE###
+    spec:
+      containers:
+      - args:
+        - --logtostderr
+        - --stderrthreshold
+        - "0"
+        - --tls-cert-file
+        - /var/run/secrets/couchbase.com/couchbase-operator-admission/tls-cert-file
+        - --tls-private-key-file
+        - /var/run/secrets/couchbase.com/couchbase-operator-admission/tls-private-key-file
+        command:
+        - couchbase-operator-admission
+        image: couchbase/admission-controller:1.2.1
+        name: couchbase-operator-admission-###NAMESPACE###
+        ports:
+        - containerPort: 8443
+          name: https
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/run/secrets/couchbase.com/couchbase-operator-admission
+          name: couchbase-operator-admission-###NAMESPACE###
+          readOnly: true
+      serviceAccountName: couchbase-operator-admission-###NAMESPACE###
+      volumes:
+      - name: couchbase-operator-admission-###NAMESPACE###
+        secret:
+          secretName: couchbase-operator-admission
+status: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  name: couchbase-operator-admission-###NAMESPACE###
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app: couchbase-operator-admission-###NAMESPACE###
+status:
+  loadBalancer: {}
+
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: couchbase-operator-admission-###NAMESPACE###
+webhooks:
+- clientConfig:
+    caBundle: ###CABUNDLE###
+    service:
+      name: couchbase-operator-admission-###NAMESPACE###
+      namespace: ###NAMESPACE###
+      path: /couchbaseclusters/mutate
+  name: couchbase-operator-admission-###NAMESPACE###.###NAMESPACE###.svc
+  rules:
+  - apiGroups:
+    - couchbase.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - couchbaseclusters
+
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  creationTimestamp: null
+  name: couchbase-operator-admission-###NAMESPACE###
+webhooks:
+- clientConfig:
+    caBundle: ###CABUNDLE###
+    service:
+      name: couchbase-operator-admission-###NAMESPACE###
+      namespace: ###NAMESPACE###
+      path: /couchbaseclusters/validate
+  name: couchbase-operator-admission-###NAMESPACE###.###NAMESPACE###.svc
+  rules:
+  - apiGroups:
+    - couchbase.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - couchbaseclusters
+
